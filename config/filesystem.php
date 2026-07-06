@@ -1,40 +1,93 @@
 <?php
-
-/*
-|--------------------------------------------------------------------------
-| Tambahkan blok disk berikut ke dalam array "disks" pada file
-| config/filesystems.php bawaan project Laravel Anda.
-|--------------------------------------------------------------------------
-|
-| Disk ini menyimpan file ZIP permohonan di luar direktori "public",
-| sehingga tidak bisa diakses langsung lewat URL publik dan tidak bisa
-| dieksekusi sebagai script. Akses file HANYA lewat endpoint
-| GET /api/admin/submissions/{id}/download yang dilindungi auth.
-|
-*/
-
-'submissions' => [
-    'driver' => 'local',
-    'root' => storage_path('app/submissions'),
-    'visibility' => 'private',
-    'throw' => false,
-],
-
-/*
-|--------------------------------------------------------------------------
-| Catatan keamanan tambahan (lakukan manual di server):
-|--------------------------------------------------------------------------
-| 1. Pastikan storage/app/submissions TIDAK berada di dalam public/.
-| 2. Set permission folder read/write hanya untuk user web server (mis. 750).
-| 3. Nonaktifkan eksekusi PHP di folder ini lewat konfigurasi web server:
-|
-|    # Nginx
-|    location ^~ /storage/submissions/ {
-|        deny all;
-|    }
-|
-|    # Apache (.htaccess di dalam folder submissions)
-|    <FilesMatch "\.(php|phtml|php3|php4|php5|phar)$">
-|        Require all denied
-|    </FilesMatch>
-*/
+ 
+return [
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | Default Filesystem Disk
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the default filesystem disk that should be used
+    | by the framework. The "local" disk, as well as a variety of cloud
+    | based disks are available to your application for file storage.
+    |
+    */
+ 
+    'default' => env('FILESYSTEM_DISK', 'local'),
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | Filesystem Disks
+    |--------------------------------------------------------------------------
+    |
+    | Below you may configure as many filesystem disks as necessary, and you
+    | may even configure multiple disks for the same driver. Examples for
+    | most supported storage drivers are configured here for reference.
+    |
+    | Supported drivers: "local", "ftp", "sftp", "s3"
+    |
+    */
+ 
+    'disks' => [
+ 
+        'local' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'throw' => false,
+            'report' => false,
+        ],
+ 
+        'public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+ 
+        's3' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => false,
+        ],
+ 
+        // Disk khusus untuk berkas ZIP permohonan magang/penelitian.
+        // Privat (tidak bisa diakses via URL publik) dan disimpan di luar
+        // folder "public/" agar tidak bisa dieksekusi sebagai script.
+        // Akses HANYA lewat GET /api/admin/submissions/{id}/download
+        // yang dilindungi middleware auth:sanctum.
+        'submissions' => [
+            'driver' => 'local',
+            'root' => storage_path('app/submissions'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+ 
+    ],
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | Symbolic Links
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the symbolic links that will be created when the
+    | `storage:link` Artisan command is executed. The array keys should be
+    | the locations of the links and the values should be their targets.
+    |
+    */
+ 
+    'links' => [
+        public_path('storage') => storage_path('app/public'),
+    ],
+ 
+];
