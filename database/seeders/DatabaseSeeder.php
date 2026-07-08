@@ -15,13 +15,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Run user seeder (creates an admin user)
+        // Run all seeder (creates an data by seeder)
         $this->call(UserSeeder::class);
+        $this->call(PosisiMagangSeeder::class);
     }
-
-    public function run(): void
-    {
-        $this->call(
-        [UserSeeder::class,]
-    });
 }
