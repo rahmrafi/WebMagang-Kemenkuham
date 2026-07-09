@@ -6,13 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    private const CACHE_PREFIX = 'admin_api_token:';
 
     /**
      * POST /api/admin/login
@@ -42,8 +39,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = Str::random(64);
-        Cache::put(self::CACHE_PREFIX . $token, $user->id, now()->addHours(8));
+        $token = $user->createToken('admin-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
@@ -64,11 +60,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $token = $request->attributes->get('admin_token', $request->bearerToken());
-
-        if (is_string($token) && $token !== '') {
-            Cache::forget(self::CACHE_PREFIX . $token);
-        }
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['success' => true, 'message' => 'Berhasil logout.']);
     }

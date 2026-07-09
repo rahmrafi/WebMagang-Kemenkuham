@@ -18,6 +18,13 @@ class SubmissionController extends Controller
             $validated['position_id'] = null;
         }
 
+        if (!$request->hasFile('document')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Berkas dokumen wajib dilampirkan.',
+            ], 422);
+        }
+
         $fileName = Str::uuid() . '.zip';
         $path = $request->file('document')->storeAs('submissions', $fileName, 'submissions');
 
