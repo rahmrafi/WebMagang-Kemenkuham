@@ -22,7 +22,9 @@ class SubmissionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Submission::query()
-            ->with('period:id,start_date,end_date');
+            ->with([
+                'period:id,start_date,end_date',
+            ]);
 
         $canTrackUnreadMessages = $this->canTrackUnreadMessages();
         if ($canTrackUnreadMessages) {
@@ -42,6 +44,17 @@ class SubmissionController extends Controller
         }
 
         $submissions = $query->latest()->get();
+
+        $latestMessages = SubmissionMessage::query()
+            ->whereIn('submission_id', $submissions->pluck('id'))
+            ->latest()
+            ->get(['id', 'submission_id', 'sender_type', 'created_at'])
+            ->unique('submission_id')
+            ->keyBy('submission_id');
+
+        $submissions->each(function (Submission $submission) use ($latestMessages) {
+            $submission->setAttribute('latest_message', $latestMessages->get($submission->id));
+        });
 
         if (!$canTrackUnreadMessages) {
             $submissions->each(fn (Submission $submission) => $submission->setAttribute('unread_admin_messages_count', 0));
@@ -111,7 +124,7 @@ class SubmissionController extends Controller
         $documentPath = $this->resolveDocumentPath($submission);
 
         if (!$submission->document_downloaded_at) {
-            $submission->forceFill(['document_downloaded_at' => now()])->save();
+            $submission->update(['document_downloaded_at' => now()]);
         }
 
         $member1Parts = explode('|', $submission->member_1);
@@ -183,9 +196,9 @@ class SubmissionController extends Controller
         ]);
     }
 
-    public function messages(Submission $submission): JsonResponse
+    public function messages(Request $request, Submission $submission): JsonResponse
     {
-        if ($this->canTrackUnreadMessages()) {
+        if ($request->boolean('mark_read', true) && $this->canTrackUnreadMessages()) {
             $submission->messages()
                 ->where('sender_type', 'applicant')
                 ->whereNull('admin_read_at')
