@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::table('submission_messages', function (Blueprint $table) {
             $table->timestamp('admin_read_at')->nullable()->after('message');
-            $table->index(['submission_id', 'sender_type', 'admin_read_at']);
+            $table->index(['submission_id', 'sender_type', 'admin_read_at'], 'submission_messages_admin_read_idx');
         });
     }
 
     public function down(): void
     {
         Schema::table('submission_messages', function (Blueprint $table) {
-            $table->dropIndex(['submission_id', 'sender_type', 'admin_read_at']);
+            $table->dropIndex('submission_messages_admin_read_idx');
             $table->dropColumn('admin_read_at');
         });
     }
