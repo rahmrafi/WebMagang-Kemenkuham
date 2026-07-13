@@ -9,7 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('submission_messages', function (Blueprint $table) {
-            $table->timestamp('admin_read_at')->nullable()->after('message');
+            if (!Schema::hasColumn('submission_messages', 'admin_read_at')) {
+                $table->timestamp('admin_read_at')->nullable()->after('message');
+            }
+
             $table->index(['submission_id', 'sender_type', 'admin_read_at'], 'submission_messages_admin_read_idx');
         });
     }
@@ -18,7 +21,10 @@ return new class extends Migration
     {
         Schema::table('submission_messages', function (Blueprint $table) {
             $table->dropIndex('submission_messages_admin_read_idx');
-            $table->dropColumn('admin_read_at');
+
+            if (Schema::hasColumn('submission_messages', 'admin_read_at')) {
+                $table->dropColumn('admin_read_at');
+            }
         });
     }
 };
