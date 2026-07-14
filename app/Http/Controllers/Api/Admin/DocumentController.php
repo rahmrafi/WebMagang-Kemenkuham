@@ -91,13 +91,18 @@ class DocumentController extends Controller
             : $namaKetua;
 
         // [8] Format jenjang:
-        //   SMA/SMK → "siswa SMK Teknik Informatika"
-        //   D3/D4/S1/dll → "mahasiswa S1 Informatika"
-        //   ucwords diterapkan pada study_program (inputan bebas)
+        //   Mahasiswa (D2/D3/D4/S1/S2/S3) → "mahasiswa S1 Informatika"  (pakai study_program)
+        //   Siswa (SMA/SMK)               → "siswa SMK Muhammadiyah Sidoarjo" (pakai institution)
         $isMahasiswa    = in_array($edLevel, self::JENJANG_MAHASISWA);
         $prefix         = $isMahasiswa ? 'mahasiswa' : 'siswa';
-        $studyProgram   = $this->toTitleCase($submission->study_program ?? '');
-        $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $studyProgram);
+        if ($isMahasiswa) {
+            $studyProgram   = $this->toTitleCase($submission->study_program ?? '');
+            $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $studyProgram);
+        } else {
+            // SMA / SMK: tampilkan nama sekolah bukan program studi
+            $namaSekolah    = $this->toTitleCase($submission->institution ?? '');
+            $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $namaSekolah);
+        }
 
         // [9] Pre-generate Word XML table untuk daftar anggota
         $membersTableXml = $this->buildMembersTableXml($members, $labelNim);
