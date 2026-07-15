@@ -53,7 +53,7 @@ class StoreSubmissionRequest extends FormRequest
             'letter_number' => ['required', 'string', 'max:100'],
             'letter_date'   => ['required', 'date'],
             'phone_number' => ['required', 'string', 'regex:/^\+?[1-9]\d{7,14}$/'],
-            'document' => ['required', 'file', 'mimes:zip', 'max:10240'],
+            'document' => ['required', 'file', 'extensions:zip', 'max:10240'],
         ];
     }
 }
