@@ -1,6 +1,6 @@
 
 # Website Magang Kemenkumham (Backend)
-Project Team-Based yang dikerjakan selama waktu magang di Kementrian Hukum wilayah Jawa Timur. ini merupakan bagian backend untuk mengatur permintaaan (request) dari frontend, menjalankan logika bisnis (business logic), dan komunikasi antara database (mysql) untuk melakukan proses CRUD (hanya dilakukan oleh admin).
+Project Team-Based yang dikerjakan selama waktu magang di Kementrian Hukum wilayah Jawa Timur. Ini merupakan bagian backend untuk mengatur permintaaan (*request*) dari frontend, menjalankan logika bisnis (*business logic*), dan komunikasi antara database (*mysql*) untuk melakukan proses CRUD (**hanya dilakukan oleh admin**).
 ## Features
 
 - Authentication
