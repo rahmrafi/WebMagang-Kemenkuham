@@ -50,7 +50,22 @@ class DocumentController extends Controller
         $data       = $this->buildData($submission);
         $xmlContent = $this->fillPlaceholders($xmlContent, $data);
 
-        $zip->addFromString('word/document.xml', $xmlContent);
+        // Jangan kirim dokumen setengah jadi apabila format template berubah lagi.
+        // strip_tags menyatukan placeholder yang mungkin dipecah ke beberapa run Word.
+        $visibleText = strip_tags($xmlContent);
+        if (preg_match('/\[(?:\.|\x{2026})+\d+\]/u', $visibleText, $unresolved)) {
+            $zip->close();
+            @unlink($tempPath);
+            abort(500, 'Template masih memiliki placeholder yang tidak dikenali: ' . $unresolved[0]);
+        }
+
+        // Hapus entry lama terlebih dahulu agar tidak ada dua document.xml di arsip DOCX.
+        $zip->deleteName('word/document.xml');
+        if (!$zip->addFromString('word/document.xml', $xmlContent)) {
+            $zip->close();
+            @unlink($tempPath);
+            abort(500, 'Gagal menulis hasil generate ke file DOCX.');
+        }
         $zip->close();
 
         // 3. Tentukan nama file output
@@ -65,6 +80,7 @@ class DocumentController extends Controller
         return response()
             ->download($tempPath, $fileName, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             ])
             ->deleteFileAfterSend(true);
     }
@@ -167,17 +183,17 @@ class DocumentController extends Controller
         $e = static fn(string $v): string =>
             htmlspecialchars($v, ENT_XML1 | ENT_QUOTES, 'UTF-8');
 
-        // ── Placeholder UTUH — ada dalam satu <w:t> ──────────────────────────
-
-        // [1] Tanggal pembuatan surat (hari ini saat generate)
-        $xml = str_replace('[....1]', $e($data['tgl_surat']), $xml);
-
-        // [2] Nama Ketua + Dkk — template: "a.n.[.....2]" → tambah spasi di depan
-        $xml = str_replace('[.....2]', ' ' . $e($data['nama_ketua_dkk']), $xml);
-
-        // [3] Jabatan pejabat pengirim surat — tampilkan sebagai placeholder manual
-        //     Muncul di baris "Yth." dan di badan surat "sehubungan dengan surat"
-        $xml = str_replace('[.....3]', '[Nama Pejabat Pengirim Surat]', $xml);
+        // Jumlah titik pada template pernah berubah dan sebagian memakai elipsis Unicode.
+        // Cocokkan keduanya agar generator tidak bergantung pada jumlah titik tertentu.
+        $xml = $this->replaceNumberedPlaceholder($xml, 1, $e($data['tgl_surat']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 2, ' ' . $e($data['nama_ketua_dkk']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 3, '[Nama Pejabat Pengirim Surat]');
+        $xml = $this->replaceNumberedPlaceholder($xml, 4, $e($data['nama_instansi']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 5, 'di ' . $e($data['kota_pengirim']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 6, $e($data['nomor_surat']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 7, $e($data['tgl_surat_permohonan']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 8, $e($data['jenjang_jurusan']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 10, $e($data['periode_magang']));
 
         // Bagian Atas Tanda Tangan (Jabatan Pejabat)
         // Hardcode sesuai permintaan user:
@@ -189,57 +205,11 @@ class DocumentController extends Controller
         // Dinamis Nama Pejabat
         $xml = str_replace('[nama_pejabat]', $e($data['nama_pejabat']), $xml);
 
-        // [5] Kota pengirim surat — tambah prefix "di" sesuai format surat resmi
-        $xml = str_replace('[....5]', 'di ' . $e($data['kota_pengirim']), $xml);
-
-        // [6] Nomor surat permohonan
-        // Di raw XML menggunakan Unicode ellipsis U+2026 (…) bukan titik ASCII
-        $ellipsis = "\xE2\x80\xA6"; // UTF-8 encoding U+2026
-        $xml = preg_replace(
-            '/\[[\.' . preg_quote($ellipsis, '/') . ']+6\]/u',
-            $e($data['nomor_surat']),
-            $xml
-        );
-
         // [9] Daftar anggota — ganti seluruh <w:p> yang mengandung placeholder
         //     dengan Word XML table berkotak (2 kolom: label | nilai)
         $xml = preg_replace(
-            '/<w:p\b[^>]*>(?:(?!<\/w:p>).)*\[\.+9\](?:(?!<\/w:p>).)*<\/w:p>/s',
+            '/<w:p\b[^>]*>(?:(?!<\/w:p>).)*\[(?:\.|\x{2026})+9\](?:(?!<\/w:p>).)*<\/w:p>/su',
             $data['members_table_xml'],
-            $xml
-        );
-
-        // [10] Periode magang — dalam kalimat "terhitung mulai tanggal [....10],"
-        $xml = str_replace('[....10]', $e($data['periode_magang']), $xml);
-
-        // ── Placeholder TERPECAH — dibagi ke beberapa <w:r> oleh Word ─────────
-
-        // [4] Nama Instansi
-        // XML: <w:t>[</w:t> → proofErr → <w:t>…..</w:t> → proofErr → <w:t>4]</w:t>
-        $xml = preg_replace(
-            '/<w:t>\[<\/w:t><\/w:r>(?:(?!<\/w:p>).)*?<w:t[^>]*>4\]<\/w:t>/s',
-            '<w:t xml:space="preserve">' . $e($data['nama_instansi']) . '</w:t>',
-            $xml
-        );
-
-        // [7] Tanggal surat permohonan
-        // XML: <w:t>tanggal [</w:t> → dots → <w:t>7</w:t> → <w:t>] ,</w:t>
-        $xml = preg_replace(
-            '/tanggal \[<\/w:t><\/w:r>(?:(?!<\/w:p>).)*?<w:t[^>]*>\] ,<\/w:t>/s',
-            'tanggal ' . $e($data['tgl_surat_permohonan']) . ', </w:t>',
-            $xml
-        );
-
-        // [8] Jenjang / jurusan
-        // XML: <w:t>...menerima [....8</w:t> → proofErr → <w:t>]  dengan</w:t>
-        $xml = str_replace(
-            '[....8</w:t>',
-            $e($data['jenjang_jurusan']) . '</w:t>',
-            $xml
-        );
-        $xml = str_replace(
-            '<w:t>]  dengan</w:t>',
-            '<w:t xml:space="preserve"> dengan</w:t>',
             $xml
         );
 
@@ -250,42 +220,43 @@ class DocumentController extends Controller
     {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_XML1 | ENT_QUOTES, 'UTF-8');
 
-        // 1. [....1] -> Tanggal Pembuatan
-        $xml = str_replace('[....1]', $e($data['tgl_surat']), $xml);
-
-        // 2. [......2] -> Nama Ketua
-        $xml = str_replace('[......2]', $e($data['nama_ketua_dkk']), $xml);
-
-        // 3. [......3] and [.....3] -> [Nama Pejabat Pengirim Surat]
-        $xml = str_replace(['[......3]', '[.....3]'], '[Nama Pejabat Pengirim Surat]', $xml);
-
-        // 4. [.......4] and [.....4] -> Instansi
-        $xml = str_replace(['[.......4]', '[.....4]'], $e($data['nama_instansi']), $xml);
-
-        // 5. [......5] and [.....5] -> Kota
-        $xml = preg_replace('/\[\.{5,6}5\]/', $e($data['kota_pengirim']), $xml);
-
-        // 6. [....6] -> Nomer Surat
-        $xml = str_replace('[....6]', $e($data['nomor_surat']), $xml);
-
-        // 7. [....7] -> Tanggal surat
-        $xml = str_replace('[....7]', $e($data['tgl_surat_permohonan']), $xml);
+        $xml = $this->replaceNumberedPlaceholder($xml, 1, $e($data['tgl_surat']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 2, $e($data['nama_ketua_dkk']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 3, '[Nama Pejabat Pengirim Surat]');
+        $xml = $this->replaceNumberedPlaceholder($xml, 4, $e($data['nama_instansi']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 5, $e($data['kota_pengirim']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 6, $e($data['nomor_surat']));
+        $xml = $this->replaceNumberedPlaceholder($xml, 7, $e($data['tgl_surat_permohonan']));
 
         // 8. [......8] -> Table members
         $xml = preg_replace(
-            '/<w:p\b[^>]*>(?:(?!<\/w:p>).)*\[\.+8\](?:(?!<\/w:p>).)*<\/w:p>/s',
+            '/<w:p\b[^>]*>(?:(?!<\/w:p>).)*\[(?:\.|\x{2026})+8\](?:(?!<\/w:p>).)*<\/w:p>/su',
             $data['members_table_xml'],
             $xml
         );
 
-        // 9. [.....9] -> Judul
-        $xml = str_replace('[.....9]', $e($data['research_title'] ?? ''), $xml);
+        $xml = $this->replaceNumberedPlaceholder($xml, 9, $e($data['research_title'] ?? ''));
 
         // Signature adjustments
         $xml = str_replace('Kepala Bagian Umum dan Tata Usaha', 'Kepala Bagian Tata Usaha dan Umum', $xml);
         $xml = str_replace('Meirina Saeksi', $e($data['nama_pejabat']), $xml);
 
         return $xml;
+    }
+
+    /**
+     * Ganti placeholder angka dengan jumlah titik bebas, termasuk elipsis Unicode.
+     */
+    private function replaceNumberedPlaceholder(string $xml, int $number, string $replacement): string
+    {
+        // Allow XML tags (<...>) and whitespaces between characters
+        $t = '(?:<[^>]+>|\s+)*';
+        // Dot or Unicode ellipsis
+        $dot = '(?:\.|\x{2026})';
+        
+        $pattern = '/\[' . $t . '(?:' . $dot . $t . ')+' . $number . $t . '\]/su';
+
+        return preg_replace_callback($pattern, static fn() => $replacement, $xml);
     }
 
     /**
