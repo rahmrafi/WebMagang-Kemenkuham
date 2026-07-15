@@ -25,13 +25,13 @@ class StoreSubmissionRequest extends FormRequest
             'institution' => ['required', 'string', 'max:150'],
             'campus_city' => ['required', 'string', 'max:100'],
             'study_program'   => [
-                // Wajib hanya untuk mahasiswa (D2/D3/D4/S1/S2/S3), opsional untuk siswa (SMA/SMK)
+                // Wajib hanya untuk jenjang perkuliahan; opsional untuk SMA/SMK dan umum/profesional/dosen.
                 Rule::requiredIf(fn () => in_array($this->input('education_level'), ['D2', 'D3', 'D4', 'S1', 'S2', 'S3'])),
                 'nullable',
                 'string',
                 'max:100',
             ],
-            'education_level' => ['required', 'string', Rule::in(['SMA', 'SMK', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'])],
+            'education_level' => ['required', 'string', Rule::in(['SMA', 'SMK', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3', 'Umum/Profesional/Dosen'])],
             'research_title' => [
                 Rule::requiredIf(fn () => $this->input('type') === 'penelitian'),
                 'nullable',

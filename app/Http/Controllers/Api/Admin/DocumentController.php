@@ -89,7 +89,11 @@ class DocumentController extends Controller
         if ($submission->type === 'penelitian') {
             $labelNim = 'Nomor Identitas';
         } else {
-            $labelNim = in_array($edLevel, ['SMA', 'SMK']) ? 'NISN' : 'NIM';
+            $labelNim = match (true) {
+                in_array($edLevel, ['SMA', 'SMK']) => 'NISN',
+                in_array($edLevel, self::JENJANG_MAHASISWA) => 'NIM',
+                default => 'Nomor Identitas',
+            };
         }
 
         // [2] Nama ketua (ucwords) + ", Dkk." jika lebih dari 1 anggota
@@ -102,12 +106,13 @@ class DocumentController extends Controller
         //   Mahasiswa (D2/D3/D4/S1/S2/S3) → "mahasiswa S1 Informatika"  (pakai study_program)
         //   Siswa (SMA/SMK)               → "siswa SMK Muhammadiyah Sidoarjo" (pakai institution)
         $isMahasiswa    = in_array($edLevel, self::JENJANG_MAHASISWA);
-        $prefix         = $isMahasiswa ? 'mahasiswa' : 'siswa';
+        $isSiswa        = in_array($edLevel, ['SMA', 'SMK']);
+        $prefix         = $isMahasiswa ? 'mahasiswa' : ($isSiswa ? 'siswa' : 'peserta');
         if ($isMahasiswa) {
             $studyProgram   = $this->toTitleCase($submission->study_program ?? '');
             $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $studyProgram);
         } else {
-            // SMA / SMK: tampilkan nama sekolah bukan program studi
+            // SMA/SMK dan peserta umum: tampilkan nama institusi bukan program studi.
             $namaSekolah    = $this->toTitleCase($submission->institution ?? '');
             $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $namaSekolah);
         }
