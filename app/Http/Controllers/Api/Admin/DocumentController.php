@@ -141,6 +141,17 @@ class DocumentController extends Controller
             } else {
                 $jenjangJurusan = trim($prefix . ' ' . $edLevel . ' ' . $namaSekolah);
             }
+            
+            // Tambahkan jurusan jika peserta non-mahasiswa mengisi kolom program studi
+            $studyProgram = trim($submission->study_program ?? '');
+            if ($studyProgram !== '') {
+                // Hindari duplikasi kata "jurusan" jika user sudah mengetiknya
+                if (stripos($studyProgram, 'jurusan') === 0) {
+                    $jenjangJurusan .= ' ' . $this->toTitleCase($studyProgram);
+                } else {
+                    $jenjangJurusan .= ' jurusan ' . $this->toTitleCase($studyProgram);
+                }
+            }
         }
 
         // [9] Pre-generate Word XML table untuk daftar anggota
