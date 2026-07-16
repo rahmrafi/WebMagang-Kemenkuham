@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AuthController;
+use App\Http\Controllers\Api\Admin\CertificateController;
 use App\Http\Controllers\Api\Admin\DocumentController;
 use App\Http\Controllers\Api\Admin\PeriodController as AdminPeriodController;
 use App\Http\Controllers\Api\Admin\SubmissionController as AdminSubmissionController;
@@ -56,4 +57,13 @@ Route::middleware(['auth:sanctum', EnsureUserIsAdmin::class, EnsureDesktopOrTabl
 
     Route::get('/settings', [App\Http\Controllers\Api\Admin\SettingsController::class, 'index']);
     Route::put('/settings', [App\Http\Controllers\Api\Admin\SettingsController::class, 'update']);
+
+    // ── Sertifikat ──────────────────────────────────────────────────────────
+    Route::get('/certificate/settings', [CertificateController::class, 'getSettings']);
+    Route::get('/certificate/template/preview', [CertificateController::class, 'previewTemplate']);
+    Route::post('/certificate/template', [CertificateController::class, 'uploadTemplate']);
+    Route::delete('/certificate/template', [CertificateController::class, 'deleteTemplate']);
+    Route::post('/certificate/fields', [CertificateController::class, 'saveFields']);
+    Route::post('/submissions/{submission}/certificate', [CertificateController::class, 'generate']);
+    Route::get('/submissions/{submission}/certificate/download', [CertificateController::class, 'download']);
 });

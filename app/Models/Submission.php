@@ -41,6 +41,8 @@ class Submission extends Model
         'discussion_started_at',
         'permit_file_path',
         'permit_file_name',
+        'certificate_zip_path',
+        'certificate_generated_at',
     ];
 
     protected $casts = [
@@ -49,6 +51,7 @@ class Submission extends Model
         'letter_date' => 'date',
         'document_downloaded_at' => 'datetime',
         'discussion_started_at' => 'datetime',
+        'certificate_generated_at' => 'datetime',
     ];
 
     public function period(): BelongsTo
