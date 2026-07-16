@@ -309,11 +309,9 @@ class CertificateController extends Controller
             // Ukuran font riil di PDF agar persis proporsinya dengan yang dilihat user
             $fontSize = max(5, (int) round($fontRatio * $pageWPt));
 
-            // Browser menempatkan teks di dalam bounding box dengan padding/line-height
-            // yang sedikit berbeda dari TCPDF. Beri kalibrasi offset Y sebesar ~15% dari font size.
-            $yOffsetPt = $fontSize * 0.15;
-            $yOffsetMm = $yOffsetPt / 2.83465;
-            $yMm += $yOffsetMm;
+            // Di frontend, AutoFitText menggunakan lineHeight: 1.
+            // Kita atur tinggi cell sama persis dengan tinggi font (1.0 * fontSize).
+            $cellHeightMm = ($fontSize * 1.0) / 2.83465;
 
             // Parse warna hex → RGB
             $color = ltrim($field['font_color'] ?? '#000000', '#');
@@ -326,9 +324,10 @@ class CertificateController extends Controller
                 'times' => 'times',
                 'georgia' => 'times',
                 'montserrat' => 'helvetica',
+                'poppins' => 'poppins',
                 'playfair' => 'times',
-                'dancing-script' => 'times',
-                'great-vibes' => 'times',
+                'dancing-script' => 'dancing-script',
+                'great-vibes' => 'great-vibes',
             ];
             $fontFamily = $field['font_family'] ?? 'helvetica';
             $font = $fontMap[$fontFamily] ?? 'helvetica';
@@ -341,6 +340,7 @@ class CertificateController extends Controller
             $customFontFiles = [
                 'great-vibes' => resource_path('fonts/GreatVibes-Regular.ttf'),
                 'dancing-script' => resource_path('fonts/DancingScript-Variable.ttf'),
+                'poppins' => resource_path('fonts/Poppins-Regular.ttf'),
             ];
             if (isset($customFontFiles[$fontFamily]) && is_file($customFontFiles[$fontFamily])) {
                 $embeddedFont = \TCPDF_FONTS::addTTFfont(
@@ -351,8 +351,6 @@ class CertificateController extends Controller
                 );
                 if ($embeddedFont !== false) {
                     $font = $embeddedFont;
-                    // File script yang disematkan telah membawa bentuk fontnya sendiri.
-                    $fontStyle = '';
                 }
             }
             $widthMm = (($field['width'] ?? 40) / 100) * $pageW;
@@ -370,8 +368,10 @@ class CertificateController extends Controller
                 $pdf->SetFont($font, $fontStyle, $fontSize);
             }
             $pdf->SetTextColor($r, $g, $b);
+            $pdf->SetCellPadding(0);
+            // Gambar teks dengan valign='M' untuk mencocokkan line-height browser.
             $pdf->SetXY($xMm, $yMm);
-            $pdf->Cell($widthMm, 0, $value, 0, 0, $align);
+            $pdf->Cell($widthMm, $cellHeightMm, $value, 0, 0, $align, 0, '', 0, false, 'T', 'M');
         }
 
         $pdf->Output($outputPath, 'F');
