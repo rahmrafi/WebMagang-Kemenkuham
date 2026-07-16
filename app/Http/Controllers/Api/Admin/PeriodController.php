@@ -12,7 +12,15 @@ class PeriodController extends Controller
 {
     public function index(): JsonResponse
     {
-        $periods = InternshipPeriod::latest()->get();
+        $periods = InternshipPeriod::latest()->get()->map(function (InternshipPeriod $period) {
+            $usedQuota = $period->used_quota;
+
+            return [
+                ...$period->toArray(),
+                'used_quota' => $usedQuota,
+                'remaining_quota' => max(0, $period->quota - $usedQuota),
+            ];
+        });
 
         return response()->json(['success' => true, 'data' => $periods]);
     }
