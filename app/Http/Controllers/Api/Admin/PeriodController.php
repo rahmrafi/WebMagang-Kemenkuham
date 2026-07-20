@@ -6,20 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\InternshipPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class PeriodController extends Controller
 {
     public function index(): JsonResponse
     {
-        $periods = InternshipPeriod::latest()->get()->map(function (InternshipPeriod $period) {
-            $usedQuota = $period->used_quota;
+        $periods = Cache::remember('admin_periods', 300, function () {
+            return InternshipPeriod::latest()->get()->map(function (InternshipPeriod $period) {
+                $usedQuota = $period->used_quota;
 
-            return [
-                ...$period->toArray(),
-                'used_quota' => $usedQuota,
-                'remaining_quota' => max(0, $period->quota - $usedQuota),
-            ];
+                return [
+                    ...$period->toArray(),
+                    'used_quota' => $usedQuota,
+                    'remaining_quota' => max(0, $period->quota - $usedQuota),
+                ];
+            });
         });
 
         return response()->json(['success' => true, 'data' => $periods]);
@@ -41,6 +44,9 @@ class PeriodController extends Controller
             'status' => $validated['status'] ?? 'active',
         ]);
 
+        Cache::forget('admin_periods');
+        Cache::forget('public_periods');
+
         return response()->json([
             'success' => true,
             'message' => 'Periode magang berhasil ditambahkan.',
@@ -59,6 +65,9 @@ class PeriodController extends Controller
 
         $period->update($validated);
 
+        Cache::forget('admin_periods');
+        Cache::forget('public_periods');
+
         return response()->json([
             'success' => true,
             'message' => 'Periode magang berhasil diperbarui.',
@@ -69,6 +78,9 @@ class PeriodController extends Controller
     public function destroy(InternshipPeriod $period): JsonResponse
     {
         $period->delete();
+
+        Cache::forget('admin_periods');
+        Cache::forget('public_periods');
 
         return response()->json([
             'success' => true,

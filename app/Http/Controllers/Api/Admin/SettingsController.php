@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Cache;
 
 class SettingsController extends Controller
 {
@@ -13,7 +15,9 @@ class SettingsController extends Controller
      */
     public function index()
     {
-        $settings = Setting::all()->pluck('value', 'key');
+        $settings = Cache::rememberForever('app_settings', function () {
+            return Setting::all()->pluck('value', 'key');
+        });
         return response()->json([
             'status' => 'success',
             'data' => $settings
@@ -35,6 +39,8 @@ class SettingsController extends Controller
                 ['value' => $value]
             );
         }
+
+        Cache::forget('app_settings');
 
         return response()->json([
             'status' => 'success',
