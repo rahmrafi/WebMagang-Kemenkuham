@@ -371,8 +371,7 @@ class CertificateController extends Controller
             $pdf->SetCellPadding(0);
             // Gambar teks dengan valign='M' untuk mencocokkan line-height browser.
             $pdf->SetXY($xMm, $yMm);
-            // Gunakan mode stretch = 1 agar teks mengecil secara proporsional jika lebih lebar dari batas kotak
-            $pdf->Cell($widthMm, $cellHeightMm, $value, 0, 0, $align, 0, '', 1, false, 'T', 'M');
+            $pdf->Cell($widthMm, $cellHeightMm, $value, 0, 0, $align, 0, '', 0, false, 'T', 'M');
         }
 
         $pdf->Output($outputPath, 'F');
