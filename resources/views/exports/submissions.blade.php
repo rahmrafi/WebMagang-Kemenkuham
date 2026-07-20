@@ -54,7 +54,7 @@
 
                     @if($mIndex === 0)
                         <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ "'".$submission->phone_number }}</td>
-                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center; text-transform: uppercase;">{{ $submission->status }}</td>
+                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ ucwords(strtolower($submission->status)) }}</td>
                         <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ $submission->created_at->format('Y-m-d H:i') }}</td>
                     @endif
                 </tr>
