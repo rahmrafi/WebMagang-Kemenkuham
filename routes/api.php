@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsAdmin::class, EnsureDesktopOrTabl
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::get('/submissions/export', [AdminSubmissionController::class, 'export']);
+    Route::get('/submissions/{submission}/export', [AdminSubmissionController::class, 'exportSingle']);
     Route::get('/submissions', [AdminSubmissionController::class, 'index']);
     Route::patch('/submissions/{submission}/status', [AdminSubmissionController::class, 'updateStatus']);
     Route::patch('/submissions/{submission}/dates', [AdminSubmissionController::class, 'updateDates']);

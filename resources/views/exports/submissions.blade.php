@@ -41,14 +41,14 @@
                 <tr>
                     @if($mIndex === 0)
                         <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ $index + 1 }}</td>
-                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center; text-transform: capitalize;">{{ $submission->type }}</td>
-                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle;">{{ $submission->institution }}</td>
-                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle;">{{ $submission->study_program ?? '-' }}</td>
+                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ ucwords(strtolower($submission->type)) }}</td>
+                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle;">{{ ucwords(strtolower($submission->institution)) }}</td>
+                        <td rowspan="{{ $memberCount }}" style="vertical-align: middle;">{{ ucwords(strtolower($submission->study_program ?? '-')) }}</td>
                         <td rowspan="{{ $memberCount }}" style="vertical-align: middle; text-align: center;">{{ $kategori }}</td>
                     @endif
 
                     <td>{{ $peran }}</td>
-                    <td>{{ $nama }}</td>
+                    <td>{{ ucwords(strtolower($nama)) }}</td>
                     <td>{{ $nim }}</td>
                     <td>{{ $email }}</td>
 

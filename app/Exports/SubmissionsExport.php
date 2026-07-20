@@ -11,10 +11,24 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SubmissionsExport implements FromView, ShouldAutoSize, WithStyles
 {
+    protected $submissionId;
+
+    public function __construct($submissionId = null)
+    {
+        $this->submissionId = $submissionId;
+    }
+
     public function view(): View
     {
+        $query = Submission::query();
+        if ($this->submissionId) {
+            $query->where('id', $this->submissionId);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
         return view('exports.submissions', [
-            'submissions' => Submission::orderBy('created_at', 'desc')->get()
+            'submissions' => $query->get()
         ]);
     }
 

@@ -25,6 +25,15 @@ class SubmissionController extends Controller
     {
         return Excel::download(new SubmissionsExport, 'Data_Pendaftar_Magang_Penelitian_' . date('Ymd_His') . '.xlsx');
     }
+
+    /**
+     * GET /api/admin/submissions/{submission}/export
+     * Export a single submission to Excel
+     */
+    public function exportSingle(Submission $submission)
+    {
+        return Excel::download(new SubmissionsExport($submission->id), 'Data_Pendaftar_' . $submission->id . '_' . date('Ymd_His') . '.xlsx');
+    }
     /**
      * GET /api/admin/submissions
      * Daftar semua permohonan dengan filter type & status.
