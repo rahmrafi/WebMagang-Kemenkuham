@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+        
         $middleware->alias([
             'verify.turnstile' => \App\Http\Middleware\VerifyTurnstile::class,
             'auth.admin'       => \App\Http\Middleware\AuthenticateAdminToken::class,

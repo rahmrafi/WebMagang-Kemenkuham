@@ -64,7 +64,17 @@ class SubmissionController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $submissions = $query->latest()->get();
+        if ($request->filled('search')) {
+            $search = strtolower($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('member_1', 'like', "%{$search}%")
+                  ->orWhere('institution', 'like', "%{$search}%")
+                  ->orWhere('letter_number', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $query->latest()->paginate(10);
+        $submissions = $paginator->getCollection();
 
         $latestMessages = SubmissionMessage::query()
             ->whereIn('submission_id', $submissions->pluck('id'))
@@ -80,10 +90,12 @@ class SubmissionController extends Controller
         if (!$canTrackUnreadMessages) {
             $submissions->each(fn (Submission $submission) => $submission->setAttribute('unread_admin_messages_count', 0));
         }
+        
+        $paginator->setCollection($submissions);
 
         return response()->json([
             'success' => true,
-            'data' => $submissions,
+            'data' => $paginator,
         ]);
     }
 

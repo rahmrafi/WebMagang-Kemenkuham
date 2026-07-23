@@ -37,17 +37,12 @@ class AuthController extends Controller
                 'message' => 'Akun ini tidak memiliki akses admin.',
             ], 403);
         }
-
-        // Hapus token lama (satu sesi aktif per user)
-        $user->tokens()->delete();
-
-        // Buat token baru
-        $token = $user->createToken('admin-panel')->plainTextToken;
+        // Mulai session aman untuk Sanctum SPA
+        $request->session()->regenerate();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'token' => $token,
                 'user'  => [
                     'id'    => $user->id,
                     'name'  => $user->name,
@@ -62,8 +57,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        // Hapus token yang sedang dipakai
-        $request->user()->currentAccessToken()->delete();
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json(['success' => true, 'message' => 'Berhasil logout.']);
     }
