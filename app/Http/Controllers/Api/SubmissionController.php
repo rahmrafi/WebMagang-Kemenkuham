@@ -191,6 +191,7 @@ class SubmissionController extends Controller
                 'document_downloaded_at' => $submission->document_downloaded_at,
                 'discussion_started_at' => $submission->discussion_started_at,
                 'permit_file_name' => $submission->status === 'approved' ? $submission->permit_file_name : null,
+                'rejection_note' => $submission->status === 'rejected' ? $submission->rejection_note : null,
                 'effective_stage' => $this->effectiveStage($submission),
             ]
         ]);

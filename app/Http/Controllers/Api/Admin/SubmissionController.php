@@ -107,6 +107,7 @@ class SubmissionController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected'])],
+            'rejection_note' => ['nullable', 'string'],
         ]);
 
         if ($validated['status'] === 'approved' && !$submission->permit_file_path) {
@@ -116,7 +117,10 @@ class SubmissionController extends Controller
             ], 422);
         }
 
-        $submission->update(['status' => $validated['status']]);
+        $submission->update([
+            'status' => $validated['status'],
+            'rejection_note' => $validated['status'] === 'rejected' ? ($validated['rejection_note'] ?? null) : null,
+        ]);
 
         broadcast(new SubmissionUpdated($submission->id));
 

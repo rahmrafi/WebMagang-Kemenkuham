@@ -43,6 +43,7 @@ class Submission extends Model
         'permit_file_name',
         'certificate_zip_path',
         'certificate_generated_at',
+        'rejection_note',
     ];
 
     protected $casts = [
